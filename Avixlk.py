@@ -1,23 +1,26 @@
-from tkinter import *
-
-window = Tk()
-
-window.title ('Avix Mobile')
+import tkinter as tk
 
 
+window = tk.Tk()
 
-lbl = Label (window,text = "Hello", font = ("Arial", 75))
-lbl.grid(column =0, row = 2)
+window.title('Avix Mobile')
+
+window.geometry('720x480')
+
+
+tklbl = tk.Label (window,text = "Avix.lk",  font = ("Times New Roman", 40))
+tklbl.config(font ="syfean", )
+tklbl.grid(row = 2, columnspan= 8, padx= (10,10), pady=(30,0))
 
 def clicked():
     res = "Welcome " + txt.get()
-    lbl.configure(text = res)
+    tklbl.configure(text = res)
 
-txt = Entry(window, width = 15)
+txt = tk.Entry(window, width = 15)
 txt.grid(column = 2, row = 2)
 
-btn = Button(window, text = 'Click me', bg = "red", fg = "white", command = clicked)
-btn.grid(column =2, row = 2)
+btn = tk.Button(window, text = 'Click me', command = clicked)
+btn.grid(column =3, row = 2)
 
 window.mainloop()
 
