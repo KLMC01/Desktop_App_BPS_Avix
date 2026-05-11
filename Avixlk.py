@@ -1,15 +1,30 @@
 import tkinter as tk
 from tkinter import ttk
+from PIL import Image, ImageTk
 
 window = tk.Tk()
 
 window.title("Avix Mobile")
 window.geometry("720x480")
-window.config(bg="#0B132B")  # dark navy background
 
-# Background image
-bg_image = tk.PhotoImage(file="sample.png")  # put your image name here
+# Load background image
+bg = Image.open("background.png")
+bg = bg.resize((720, 480))
 
+# Create dark transparent overlay
+overlay = Image.new("RGBA", (720, 480), (0, 0, 0, 150))
+# 150 = darkness level
+# lower value = less dark
+# higher value = more dark
+
+# Apply overlay on background
+bg = bg.convert("RGBA")
+dark_bg = Image.alpha_composite(bg, overlay)
+
+# Convert image for Tkinter
+bg_image = ImageTk.PhotoImage(dark_bg)
+
+# Background label
 bg_label = tk.Label(window, image=bg_image)
 bg_label.place(x=0, y=0, relwidth=1, relheight=1)
 
@@ -35,9 +50,9 @@ style.configure(
 title_label = tk.Label(
     window,
     text="Avix LK",
-    font=("Times New Roman", 40, "bold"),
-    fg="#FFD700",      # gold title
-    bg="#0B132B"       # same as window bg
+    font=("Bahnschrift", 42, "bold"),
+    fg="#FFD700",
+    bg="#0B132B"
 )
 title_label.grid(row=0, column=0, pady=(120, 20))
 
@@ -53,7 +68,7 @@ progress = ttk.Progressbar(
 progress_label = tk.Label(
     window,
     text="",
-    font=("Times New Roman", 14),
+    font=("Bahnschrift", 14),
     bg="#0B132B",
     fg="white"
 )
@@ -65,12 +80,25 @@ def open_new_window():
     new_window = tk.Tk()
     new_window.title("Avix Mobile - Home")
     new_window.geometry("720x480")
-    new_window.config(bg="#0B132B")
+
+    # New window background
+    new_bg = Image.open("background.png")
+    new_bg = new_bg.resize((720, 480))
+    new_bg = new_bg.convert("RGBA")
+
+    new_overlay = Image.new("RGBA", (720, 480), (0, 0, 0, 150))
+    new_dark_bg = Image.alpha_composite(new_bg, new_overlay)
+
+    new_bg_image = ImageTk.PhotoImage(new_dark_bg)
+
+    new_bg_label = tk.Label(new_window, image=new_bg_image)
+    new_bg_label.image = new_bg_image
+    new_bg_label.place(x=0, y=0, relwidth=1, relheight=1)
 
     welcome_label = tk.Label(
         new_window,
         text="Welcome to Avix LK",
-        font=("Times New Roman", 35, "bold"),
+        font=("Bahnschrift", 35, "bold"),
         fg="#FFD700",
         bg="#0B132B"
     )
@@ -99,13 +127,13 @@ def load_progress(value):
 # Enter button
 enter_btn = tk.Button(
     window,
-    text="E N T E R",
-    font=("Century Gothic", 35, "bold"),
-    bg="#8B0000",      # dark red
+    text="Enter",
+    font=("Bahnschrift", 18, "bold"),
+    bg="#8B0000",
     fg="white",
     activebackground="#B22222",
     activeforeground="white",
-    width=18,
+    width=12,
     command=start_loading
 )
 enter_btn.grid(row=1, column=0)
