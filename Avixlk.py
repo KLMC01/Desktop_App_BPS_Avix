@@ -5,7 +5,13 @@ window = tk.Tk()
 
 window.title("Avix Mobile")
 window.geometry("720x480")
-window.config(bg="#FF69B4")
+window.config(bg="#0B132B")  # dark navy background
+
+# Background image
+bg_image = tk.PhotoImage(file="sample.png")  # put your image name here
+
+bg_label = tk.Label(window, image=bg_image)
+bg_label.place(x=0, y=0, relwidth=1, relheight=1)
 
 # Make center layout
 window.rowconfigure(0, weight=1)
@@ -13,13 +19,25 @@ window.rowconfigure(1, weight=1)
 window.rowconfigure(2, weight=1)
 window.columnconfigure(0, weight=1)
 
+# Progress bar dark style
+style = ttk.Style()
+style.theme_use("clam")
+style.configure(
+    "Dark.Horizontal.TProgressbar",
+    troughcolor="#1C2541",
+    background="#FFD700",
+    bordercolor="#1C2541",
+    lightcolor="#FFD700",
+    darkcolor="#FFD700"
+)
+
 # Avix LK label
 title_label = tk.Label(
     window,
     text="Avix LK",
     font=("Times New Roman", 40, "bold"),
-    fg="red",
-    bg="light blue"
+    fg="#FFD700",      # gold title
+    bg="#0B132B"       # same as window bg
 )
 title_label.grid(row=0, column=0, pady=(120, 20))
 
@@ -28,15 +46,16 @@ progress = ttk.Progressbar(
     window,
     orient="horizontal",
     length=300,
-    mode="determinate"
+    mode="determinate",
+    style="Dark.Horizontal.TProgressbar"
 )
 
 progress_label = tk.Label(
     window,
     text="",
     font=("Times New Roman", 14),
-    bg="light blue",
-    fg="black"
+    bg="#0B132B",
+    fg="white"
 )
 
 # New window function
@@ -46,14 +65,14 @@ def open_new_window():
     new_window = tk.Tk()
     new_window.title("Avix Mobile - Home")
     new_window.geometry("720x480")
-    new_window.config(bg="light blue")
+    new_window.config(bg="#0B132B")
 
     welcome_label = tk.Label(
         new_window,
         text="Welcome to Avix LK",
         font=("Times New Roman", 35, "bold"),
-        fg="yellow",
-        bg="light blue"
+        fg="#FFD700",
+        bg="#0B132B"
     )
     welcome_label.pack(expand=True)
 
@@ -80,11 +99,13 @@ def load_progress(value):
 # Enter button
 enter_btn = tk.Button(
     window,
-    text="Enter",
-    font=("Times New Roman", 18, "bold"),
-    bg="#ff7f7f",
+    text="E N T E R",
+    font=("Century Gothic", 35, "bold"),
+    bg="#8B0000",      # dark red
     fg="white",
-    width=12,
+    activebackground="#B22222",
+    activeforeground="white",
+    width=18,
     command=start_loading
 )
 enter_btn.grid(row=1, column=0)
