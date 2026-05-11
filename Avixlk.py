@@ -1,27 +1,43 @@
 import tkinter as tk
 
-
 window = tk.Tk()
 
-window.title('Avix Mobile')
+window.title("Avix Mobile")
+window.geometry("720x480")
+window.config(bg="light blue")
 
-window.geometry('720x480')
+# Make the window grid expand properly
+window.rowconfigure(0, weight=1)
+window.rowconfigure(1, weight=1)
+window.rowconfigure(2, weight=1)
+window.columnconfigure(0, weight=1)
 
+# Avix LK label
+title_label = tk.Label(
+    window,
+    text="Avix LK",
+    font=("Times New Roman", 40, "bold"),
+    fg="yellow",
+    bg="light blue"
+)
 
-tklbl = tk.Label (window,text = "Avix.lk",  font = ("Times New Roman", 40))
-tklbl.config(font ="syfean", )
-tklbl.grid(row = 2, columnspan= 8, padx= (10,10), pady=(30,0))
+title_label.grid(row=0, column=0, pady=(120, 20))
 
+# Button click function
 def clicked():
-    res = "Welcome " + txt.get()
-    tklbl.configure(text = res)
+    title_label.config(text="Welcome to Avix LK")
 
-txt = tk.Entry(window, width = 15)
-txt.grid(column = 2, row = 2)
+# Enter button
+enter_btn = tk.Button(
+    window,
+    text="Enter",
+    font=("Times New Roman", 18, "bold"),
+    bg="#ff7f7f",   # light red
+    fg="white",
+    width=12,
+    command=clicked
+)
 
-btn = tk.Button(window, text = 'Click me', command = clicked)
-btn.grid(column =3, row = 2)
+enter_btn.grid(row=1, column=0)
 
 window.mainloop()
-
-
