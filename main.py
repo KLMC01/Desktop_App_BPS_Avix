@@ -1,6 +1,7 @@
 import tkinter as tk
 from welcome_page import WelcomePage
 from login_page import LoginPage
+from dashboard_page import DashboardPage
 
 
 class AvixApp(tk.Tk):
@@ -27,23 +28,7 @@ class AvixApp(tk.Tk):
 
     def show_dashboard_page(self):
         self.clear_window()
-
-        canvas = tk.Canvas(self, width=720, height=480, bg="#06101E", highlightthickness=0)
-        canvas.pack(fill="both", expand=True)
-
-        canvas.create_text(
-            360, 210,
-            text="Dashboard Page",
-            font=("Arial", 34, "bold"),
-            fill="white"
-        )
-
-        canvas.create_text(
-            360, 255,
-            text="Login successful. System dashboard will be designed here.",
-            font=("Arial", 13),
-            fill="#DDEEFF"
-        )
+        DashboardPage(self, self.show_welcome_page)
 
 
 app = AvixApp()

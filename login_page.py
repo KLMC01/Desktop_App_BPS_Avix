@@ -26,6 +26,9 @@ class LoginPage:
         self.password_entry = None
         self.error_text_id = None
 
+        self.password_visible = False
+        self.eye_text_id = None
+
         self.show_page()
 
     def prepare_dark_background(self):
@@ -77,6 +80,38 @@ class LoginPage:
 
         self.logo_image = ImageTk.PhotoImage(rounded_logo)
         return self.logo_image
+
+    def toggle_password_visibility(self):
+        if self.password_visible:
+            self.password_entry.config(show="*")
+            self.password_visible = False
+            self.canvas.itemconfig(self.eye_text_id, text="👁")
+        else:
+            self.password_entry.config(show="")
+            self.password_visible = True
+            self.canvas.itemconfig(self.eye_text_id, text="🙈")
+
+    def draw_eye_icon(self):
+        eye_bg = self.rounded_rectangle(
+            self.canvas,
+            610, 266, 642, 296,
+            radius=8,
+            fill="#D9D9D9",
+            outline="#A8A8A8",
+            width=1
+        )
+
+        self.eye_text_id = self.canvas.create_text(
+            626, 281,
+            text="👁",
+            font=("Arial", 13),
+            fill="black"
+        )
+
+        for item in [eye_bg, self.eye_text_id]:
+            self.canvas.tag_bind(item, "<Button-1>", lambda event: self.toggle_password_visibility())
+            self.canvas.tag_bind(item, "<Enter>", lambda event: self.canvas.config(cursor="hand2"))
+            self.canvas.tag_bind(item, "<Leave>", lambda event: self.canvas.config(cursor=""))
 
     def draw_login_button(self):
         login_shadow = self.rounded_rectangle(
@@ -396,11 +431,13 @@ class LoginPage:
         )
 
         self.canvas.create_window(
-            506, 277,
-            width=276,
+            487, 277,
+            width=238,
             height=32,
             window=self.password_entry
         )
+
+        self.draw_eye_icon()
 
         self.draw_login_button()
 
