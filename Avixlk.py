@@ -84,9 +84,9 @@ canvas.logo_image = logo_image
 
 # ---------------- TITLE TEXT ----------------
 canvas.create_text(
-    360, 150,
+    360, 100,
     text="Avix LK",
-    font=("Ubuntu", 42, "bold"),
+    font=("Ubuntu", 75, "bold"),
     fill="#FFD700"
 )
 
@@ -145,7 +145,7 @@ def open_new_window():
     new_canvas.image = new_bg_image
 
     new_canvas.create_text(
-        360, 240,
+        360, 100,
         text="Welcome to Avix LK",
         font=("Ubuntu", 35, "bold"),
         fill="#FFD700"
