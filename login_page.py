@@ -25,7 +25,6 @@ class LoginPage:
         self.username_entry = None
         self.password_entry = None
         self.error_text_id = None
-        self.back_btn = None
 
         self.show_page()
 
@@ -79,30 +78,7 @@ class LoginPage:
         self.logo_image = ImageTk.PhotoImage(rounded_logo)
         return self.logo_image
 
-    def draw_back_button(self):
-        self.back_btn = tk.Button(
-            self.root,
-            text="← BACK",
-            font=("Arial", 10, "bold"),
-            bg="#8B0000",
-            fg="white",
-            activebackground="#B30000",
-            activeforeground="white",
-            bd=2,
-            relief="raised",
-            cursor="hand2",
-            command=self.go_back
-        )
-
-        self.canvas.create_window(
-            67, 425,
-            width=95,
-            height=34,
-            window=self.back_btn
-        )
-
     def draw_login_button(self):
-        # 3D shadow
         login_shadow = self.rounded_rectangle(
             self.canvas,
             529, 337, 636, 373,
@@ -111,7 +87,6 @@ class LoginPage:
             outline=""
         )
 
-        # Main button body
         login_fill = self.rounded_rectangle(
             self.canvas,
             526, 332, 633, 368,
@@ -121,7 +96,6 @@ class LoginPage:
             width=2
         )
 
-        # Inner button area
         login_inner = self.rounded_rectangle(
             self.canvas,
             532, 338, 627, 365,
@@ -130,7 +104,6 @@ class LoginPage:
             outline=""
         )
 
-        # Top glossy highlight
         login_highlight = self.rounded_rectangle(
             self.canvas,
             536, 337, 623, 348,
@@ -139,7 +112,6 @@ class LoginPage:
             outline=""
         )
 
-        # Text shadow
         login_text_shadow = self.canvas.create_text(
             582, 352,
             text="Login",
@@ -147,7 +119,6 @@ class LoginPage:
             fill="#3F6F63"
         )
 
-        # Main text
         login_text = self.canvas.create_text(
             580, 350,
             text="Login",
@@ -164,6 +135,66 @@ class LoginPage:
             login_text
         ]:
             self.canvas.tag_bind(item, "<Button-1>", lambda event: self.check_login())
+            self.canvas.tag_bind(item, "<Enter>", lambda event: self.canvas.config(cursor="hand2"))
+            self.canvas.tag_bind(item, "<Leave>", lambda event: self.canvas.config(cursor=""))
+
+    def draw_back_button(self):
+        back_shadow = self.rounded_rectangle(
+            self.canvas,
+            30, 418, 135, 454,
+            radius=7,
+            fill="#3B0000",
+            outline=""
+        )
+
+        back_fill = self.rounded_rectangle(
+            self.canvas,
+            27, 413, 132, 449,
+            radius=7,
+            fill="#8B0000",
+            outline="#FF6B6B",
+            width=2
+        )
+
+        back_inner = self.rounded_rectangle(
+            self.canvas,
+            33, 419, 126, 446,
+            radius=6,
+            fill="#8B0000",
+            outline=""
+        )
+
+        back_highlight = self.rounded_rectangle(
+            self.canvas,
+            37, 418, 122, 429,
+            radius=5,
+            fill="#C52B2B",
+            outline=""
+        )
+
+        back_text_shadow = self.canvas.create_text(
+            83, 433,
+            text="BACK",
+            font=("Arial", 10, "bold"),
+            fill="#4A0000"
+        )
+
+        back_text = self.canvas.create_text(
+            80, 431,
+            text="BACK",
+            font=("Arial", 10, "bold"),
+            fill="white"
+        )
+
+        for item in [
+            back_shadow,
+            back_fill,
+            back_inner,
+            back_highlight,
+            back_text_shadow,
+            back_text
+        ]:
+            self.canvas.tag_bind(item, "<Button-1>", lambda event: self.go_back())
             self.canvas.tag_bind(item, "<Enter>", lambda event: self.canvas.config(cursor="hand2"))
             self.canvas.tag_bind(item, "<Leave>", lambda event: self.canvas.config(cursor=""))
 
@@ -197,10 +228,6 @@ class LoginPage:
         if self.password_entry is not None:
             self.password_entry.destroy()
             self.password_entry = None
-
-        if self.back_btn is not None:
-            self.back_btn.destroy()
-            self.back_btn = None
 
     def show_success_page(self):
         self.destroy_inputs()
@@ -237,7 +264,6 @@ class LoginPage:
 
         self.canvas.create_image(0, 0, image=self.bg_image, anchor="nw")
 
-        # Main card shadow
         self.rounded_rectangle(
             self.canvas,
             31, 52, 697, 401,
@@ -246,7 +272,6 @@ class LoginPage:
             outline=""
         )
 
-        # Left panel
         self.rounded_rectangle(
             self.canvas,
             27, 47, 355, 396,
@@ -255,7 +280,6 @@ class LoginPage:
             outline=""
         )
 
-        # Right panel
         self.rounded_rectangle(
             self.canvas,
             318, 47, 693, 396,
@@ -264,7 +288,6 @@ class LoginPage:
             outline=""
         )
 
-        # Welcome title
         self.canvas.create_text(
             48, 80,
             text="Welcome to Avix.lk",
@@ -273,7 +296,6 @@ class LoginPage:
             anchor="w"
         )
 
-        # Underline
         self.canvas.create_line(
             48, 94, 263, 94,
             fill="#5B5A00",
@@ -303,7 +325,6 @@ class LoginPage:
             justify="left"
         )
 
-        # Login title shadow
         self.canvas.create_text(
             403, 90,
             text="Login",
@@ -311,7 +332,6 @@ class LoginPage:
             fill="#6B6B6B"
         )
 
-        # Login title
         self.canvas.create_text(
             400, 88,
             text="Login",
@@ -319,7 +339,6 @@ class LoginPage:
             fill="black"
         )
 
-        # Username label
         self.canvas.create_text(
             505, 142,
             text="User Name",
@@ -327,7 +346,6 @@ class LoginPage:
             fill="black"
         )
 
-        # Username entry shadow
         self.rounded_rectangle(
             self.canvas,
             367, 169, 647, 203,
@@ -352,7 +370,6 @@ class LoginPage:
             window=self.username_entry
         )
 
-        # Password label
         self.canvas.create_text(
             505, 237,
             text="Password",
@@ -360,7 +377,6 @@ class LoginPage:
             fill="black"
         )
 
-        # Password entry shadow
         self.rounded_rectangle(
             self.canvas,
             367, 264, 647, 298,
@@ -386,10 +402,8 @@ class LoginPage:
             window=self.password_entry
         )
 
-        # 3D login button
         self.draw_login_button()
 
-        # Logo box bottom-right
         self.rounded_rectangle(
             self.canvas,
             611, 409, 675, 472,
@@ -402,7 +416,6 @@ class LoginPage:
         small_logo = self.create_logo_image(50, 10)
         self.canvas.create_image(643, 440, image=small_logo, anchor="center")
 
-        # Back button bottom-left
         self.draw_back_button()
 
         self.add_footer()
