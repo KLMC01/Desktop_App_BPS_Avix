@@ -1,4 +1,6 @@
 import tkinter as tk
+from pathlib import Path
+
 from welcome_page import WelcomePage
 from login_page import LoginPage
 from dashboard import DashboardPage
@@ -11,6 +13,12 @@ class AvixApp(tk.Tk):
         self.title("Avix Mobile")
         self.geometry("720x480")
         self.resizable(False, False)
+
+        project_dir = Path(__file__).resolve().parent
+        icon_path = project_dir / "icon.ico"
+
+        if icon_path.exists():
+            self.iconbitmap(str(icon_path))
 
         self.show_welcome_page()
 
@@ -31,5 +39,6 @@ class AvixApp(tk.Tk):
         DashboardPage(self, self.show_welcome_page)
 
 
-app = AvixApp()
-app.mainloop()
+if __name__ == "__main__":
+    app = AvixApp()
+    app.mainloop()
