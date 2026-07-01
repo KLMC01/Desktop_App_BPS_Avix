@@ -451,7 +451,6 @@ class DashboardPage:
         self.draw_3d_button(47, 347, 119, 377, "HOME", self.go_home, font=("Arial", 9, "bold"))
         self.draw_3d_button(128, 347, 210, 377, "LOGIN", self.go_login, font=("Arial", 9, "bold"))
 
-        self.canvas.create_text(506, 87, text="Dashboard", font=("Arial", 31, "bold"), fill="#666666")
         self.canvas.create_text(503, 83, text="Dashboard", font=("Arial", 31, "bold"), fill="black")
         self.canvas.create_text(
             503,
@@ -997,8 +996,17 @@ class DashboardPage:
         ]
 
     def download_pdf(self):
+        """Export a professional report with exactly three pages.
+
+        Page 1: portrait executive summary.
+        Page 2: landscape chart-only page.
+        Page 3: portrait detailed analysis.
+        """
         if self.figure is None or self.last_result is None:
-            messagebox.showwarning("Generate chart first", "Generate a chart before downloading the PDF report.")
+            messagebox.showwarning(
+                "Generate chart first",
+                "Generate a chart before downloading the PDF report.",
+            )
             return
 
         default_name = f"Avix_{self.selected_chart.replace(' ', '_')}_Business_Report.pdf"
@@ -1013,17 +1021,38 @@ class DashboardPage:
 
         try:
             with PdfPages(output_path) as pdf:
-                # Page 1: executive overview and chart
+                # ============================================================
+                # PAGE 1 — PORTRAIT EXECUTIVE SUMMARY
+                # ============================================================
                 page1 = Figure(figsize=(8.27, 11.69), facecolor="#F8FBFB")
                 self._add_report_watermark(page1)
-                page1.text(0.08, 0.95, "AVIX MOBILE LK", fontsize=20, fontweight="bold", color="#0E4A37")
-                page1.text(0.08, 0.922, "Business Analysis Report", fontsize=13, color="#5B5A00")
-                page1.text(0.92, 0.95, datetime.now().strftime("%d %B %Y"), fontsize=8.5, ha="right", color="#5B6B68")
+
+                page1.text(
+                    0.08, 0.95, "AVIX MOBILE LK",
+                    fontsize=20, fontweight="bold", color="#0E4A37",
+                )
+                page1.text(
+                    0.08, 0.922, "Business Analysis Report",
+                    fontsize=13, color="#5B5A00",
+                )
+                page1.text(
+                    0.92, 0.95,
+                    datetime.now().strftime("%d %B %Y"),
+                    fontsize=8.5, ha="right", color="#5B6B68",
+                )
                 page1.lines.append(
-                    __import__("matplotlib").lines.Line2D([0.08, 0.92], [0.905, 0.905], transform=page1.transFigure, color="#91D9C0", linewidth=2)
+                    __import__("matplotlib").lines.Line2D(
+                        [0.08, 0.92], [0.905, 0.905],
+                        transform=page1.transFigure,
+                        color="#91D9C0", linewidth=2,
+                    )
                 )
 
-                page1.text(0.08, 0.875, "REPORT OVERVIEW", fontsize=10.5, fontweight="bold", color="#0E4A37")
+                page1.text(
+                    0.08, 0.87, "REPORT OVERVIEW",
+                    fontsize=11, fontweight="bold", color="#0E4A37",
+                )
+
                 metadata = [
                     ("Workbook", os.path.basename(self.excel_path or "")),
                     ("Worksheet", self.sheet_var.get()),
@@ -1034,59 +1063,176 @@ class DashboardPage:
                     ("Calculation", self.aggregation_var.get()),
                     ("Date range", f"{self.start_date_var.get()} to {self.end_date_var.get()}"),
                 ]
-                y = 0.845
+
+                y = 0.83
                 for index, (label, value) in enumerate(metadata):
-                    x = 0.08 if index % 2 == 0 else 0.52
-                    if index % 2 == 0 and index > 0:
-                        y -= 0.045
-                    page1.text(x, y, label.upper(), fontsize=7.5, fontweight="bold", color="#5B6B68")
-                    page1.text(x, y - 0.018, str(value), fontsize=9, color="#1F2D2A")
+                    column_x = 0.08 if index % 2 == 0 else 0.52
+                    row_index = index // 2
+                    item_y = y - (row_index * 0.065)
+                    page1.text(
+                        column_x, item_y,
+                        label.upper(),
+                        fontsize=7.5, fontweight="bold", color="#5B6B68",
+                    )
+                    page1.text(
+                        column_x, item_y - 0.022,
+                        str(value),
+                        fontsize=9, color="#1F2D2A",
+                    )
 
-                chart_axis = page1.add_axes([0.09, 0.36, 0.82, 0.34], facecolor="#FFFFFF")
-                self._draw_chart_on_axis(chart_axis, result=self.last_result)
-                chart_axis.tick_params(labelsize=8)
+                page1.text(
+                    0.08, 0.53, "EXECUTIVE SUMMARY",
+                    fontsize=11, fontweight="bold", color="#0E4A37",
+                )
+                summary = (
+                    f"This report analyses the {self.aggregation_var.get().lower()} of "
+                    f"{self.y_var.get()} by {self.x_var.get()} using the selected Excel "
+                    "worksheet and date range. The chart on page 2 provides a visual "
+                    "comparison of the processed results, while page 3 presents the "
+                    "detailed values, method, recommendations, and limitations."
+                )
+                page1.text(
+                    0.08, 0.495,
+                    "\n".join(textwrap.wrap(summary, 105)),
+                    fontsize=9.5, color="#1F2D2A", va="top",
+                    linespacing=1.45,
+                )
 
-                page1.text(0.08, 0.315, "KEY INSIGHTS", fontsize=10.5, fontweight="bold", color="#0E4A37")
-                insight_y = 0.285
+                page1.text(
+                    0.08, 0.37, "KEY INSIGHTS",
+                    fontsize=11, fontweight="bold", color="#0E4A37",
+                )
+                insight_y = 0.335
                 for line in self._insight_lines():
-                    for wrapped in textwrap.wrap(line, 95):
-                        page1.text(0.095, insight_y, f"• {wrapped}", fontsize=9, color="#1F2D2A")
-                        insight_y -= 0.023
+                    wrapped_lines = textwrap.wrap(line, 96)
+                    page1.text(
+                        0.095, insight_y,
+                        "• " + "\n  ".join(wrapped_lines),
+                        fontsize=9.5, color="#1F2D2A", va="top",
+                        linespacing=1.4,
+                    )
+                    insight_y -= 0.055 + max(0, len(wrapped_lines) - 1) * 0.022
 
-                page1.text(0.08, 0.17, "EXECUTIVE INTERPRETATION", fontsize=10.5, fontweight="bold", color="#0E4A37")
-                interpretation = (
-                    f"This report summarizes the {self.aggregation_var.get().lower()} of {self.y_var.get()} "
-                    f"across {self.x_var.get()} using the selected worksheet and date range. The visualization "
-                    "supports comparison, pattern recognition, and evidence-based operational decisions."
+                page1.text(
+                    0.08, 0.16, "REPORT PURPOSE",
+                    fontsize=11, fontweight="bold", color="#0E4A37",
                 )
-                page1.text(0.08, 0.145, "\n".join(textwrap.wrap(interpretation, 105)), fontsize=9, color="#1F2D2A", va="top")
+                purpose = (
+                    "The report supports evidence-based business decisions by converting "
+                    "uploaded sales data into a clear visual analysis and structured findings. "
+                    "The results should be reviewed together with stock levels, profit margins, "
+                    "customer demand, and operational knowledge."
+                )
+                page1.text(
+                    0.08, 0.13,
+                    "\n".join(textwrap.wrap(purpose, 105)),
+                    fontsize=9, color="#1F2D2A", va="top",
+                    linespacing=1.4,
+                )
+
                 self._report_footer(page1, 1)
-                pdf.savefig(page1, facecolor=page1.get_facecolor())
+                pdf.savefig(page1, facecolor=page1.get_facecolor(), bbox_inches=None)
 
-                # Page 2: detailed table, method and recommendations
-                page2 = Figure(figsize=(8.27, 11.69), facecolor="#F8FBFB")
+                # ============================================================
+                # PAGE 2 — LANDSCAPE CHART PAGE
+                # ============================================================
+                page2 = Figure(figsize=(11.69, 8.27), facecolor="#F8FBFB")
                 self._add_report_watermark(page2)
-                page2.text(0.08, 0.95, "DETAILED ANALYSIS", fontsize=18, fontweight="bold", color="#0E4A37")
-                page2.text(0.08, 0.92, self.last_chart_title or self.selected_chart, fontsize=11, color="#5B5A00")
+
+                page2.text(
+                    0.055, 0.945, "AVIX MOBILE LK",
+                    fontsize=17, fontweight="bold", color="#0E4A37",
+                )
+                page2.text(
+                    0.055, 0.91, "Chart Analysis",
+                    fontsize=11, color="#5B5A00",
+                )
+                page2.text(
+                    0.945, 0.945,
+                    self.selected_chart,
+                    fontsize=10, ha="right", color="#5B6B68",
+                )
                 page2.lines.append(
-                    __import__("matplotlib").lines.Line2D([0.08, 0.92], [0.9, 0.9], transform=page2.transFigure, color="#91D9C0", linewidth=2)
+                    __import__("matplotlib").lines.Line2D(
+                        [0.055, 0.945], [0.885, 0.885],
+                        transform=page2.transFigure,
+                        color="#91D9C0", linewidth=2,
+                    )
                 )
 
-                page2.text(0.08, 0.865, "TOP ANALYSIS RESULTS", fontsize=10.5, fontweight="bold", color="#0E4A37")
+                chart_axis = page2.add_axes([0.08, 0.16, 0.84, 0.66], facecolor="#FFFFFF")
+                self._draw_chart_on_axis(
+                    chart_axis,
+                    result=self.last_result,
+                    chart_type=self.selected_chart,
+                    title=self.last_chart_title or self.selected_chart,
+                )
+                chart_axis.tick_params(labelsize=9)
+
+                if self.selected_chart in ("Column Chart", "Line Chart"):
+                    for label in chart_axis.get_xticklabels():
+                        label.set_rotation(35)
+                        label.set_horizontalalignment("right")
+
+                page2.text(
+                    0.055, 0.095,
+                    f"Worksheet: {self.sheet_var.get()}   |   "
+                    f"Date range: {self.start_date_var.get()} to {self.end_date_var.get()}   |   "
+                    f"Calculation: {self.aggregation_var.get()}",
+                    fontsize=8.5, color="#5B6B68",
+                )
+
+                self._report_footer(page2, 2)
+                pdf.savefig(page2, facecolor=page2.get_facecolor(), bbox_inches=None)
+
+                # ============================================================
+                # PAGE 3 — PORTRAIT DETAILED ANALYSIS
+                # ============================================================
+                page3 = Figure(figsize=(8.27, 11.69), facecolor="#F8FBFB")
+                self._add_report_watermark(page3)
+
+                page3.text(
+                    0.08, 0.95, "DETAILED ANALYSIS",
+                    fontsize=18, fontweight="bold", color="#0E4A37",
+                )
+                page3.text(
+                    0.08, 0.92,
+                    self.last_chart_title or self.selected_chart,
+                    fontsize=11, color="#5B5A00",
+                )
+                page3.lines.append(
+                    __import__("matplotlib").lines.Line2D(
+                        [0.08, 0.92], [0.90, 0.90],
+                        transform=page3.transFigure,
+                        color="#91D9C0", linewidth=2,
+                    )
+                )
+
+                page3.text(
+                    0.08, 0.865, "TOP ANALYSIS RESULTS",
+                    fontsize=10.5, fontweight="bold", color="#0E4A37",
+                )
+
                 table_data = self.last_result.sort_values("value", ascending=False).head(12)
-                table_axis = page2.add_axes([0.08, 0.53, 0.84, 0.30])
+                table_axis = page3.add_axes([0.08, 0.59, 0.84, 0.27])
                 table_axis.axis("off")
-                cell_text = [[str(row[self.x_var.get()]), f"{row['value']:,.2f}"] for _, row in table_data.iterrows()]
+                cell_text = [
+                    [str(row[self.x_var.get()]), f"{row['value']:,.2f}"]
+                    for _, row in table_data.iterrows()
+                ]
                 table = table_axis.table(
                     cellText=cell_text,
-                    colLabels=[self.x_var.get(), f"{self.aggregation_var.get()} of {self.y_var.get()}"],
+                    colLabels=[
+                        self.x_var.get(),
+                        f"{self.aggregation_var.get()} of {self.y_var.get()}",
+                    ],
                     loc="center",
                     cellLoc="left",
                     colColours=["#91D9C0", "#91D9C0"],
                 )
                 table.auto_set_font_size(False)
                 table.set_fontsize(8.5)
-                table.scale(1, 1.45)
+                table.scale(1, 1.35)
                 for (row, col), cell in table.get_celld().items():
                     cell.set_edgecolor("#C7D9D4")
                     if row == 0:
@@ -1094,44 +1240,96 @@ class DashboardPage:
                     elif row % 2 == 0:
                         cell.set_facecolor("#EDF7F4")
 
-                page2.text(0.08, 0.47, "METHODOLOGY", fontsize=10.5, fontweight="bold", color="#0E4A37")
-                method = (
-                    "The application imported the selected Excel worksheet, filtered records using the chosen "
-                    "date column and calendar range, grouped the records by the selected X-axis field, and applied "
-                    f"the {self.aggregation_var.get().lower()} calculation to the selected Y-axis field. "
-                    "The processed result was then visualized using the selected chart type."
+                page3.text(
+                    0.08, 0.53, "METHODOLOGY",
+                    fontsize=10.5, fontweight="bold", color="#0E4A37",
                 )
-                page2.text(0.08, 0.445, "\n".join(textwrap.wrap(method, 108)), fontsize=9, color="#1F2D2A", va="top")
+                method = (
+                    "The application imported the selected Excel worksheet, filtered "
+                    "records using the chosen date column and calendar range, grouped "
+                    "records by the selected X-axis field, and applied the selected "
+                    f"{self.aggregation_var.get().lower()} calculation to "
+                    f"{self.y_var.get()}. The processed result was visualized as a "
+                    f"{self.selected_chart.lower()}."
+                )
+                page3.text(
+                    0.08, 0.492,
+                    "\n".join(textwrap.wrap(method, 108)),
+                    fontsize=9, color="#1F2D2A", va="top",
+                    linespacing=1.35,
+                )
 
-                page2.text(0.08, 0.34, "BUSINESS RECOMMENDATIONS", fontsize=10.5, fontweight="bold", color="#0E4A37")
+                page3.text(
+                    0.08, 0.40, "BUSINESS RECOMMENDATIONS",
+                    fontsize=10.5, fontweight="bold", color="#0E4A37",
+                )
                 ordered = self.last_result.sort_values("value", ascending=False)
                 leader = ordered.iloc[0][self.x_var.get()]
                 laggard = ordered.iloc[-1][self.x_var.get()]
                 recommendations = [
-                    f"Prioritize stock, promotional attention, or operational resources for {leader}, which produced the strongest result.",
-                    f"Review the performance of {laggard} and determine whether pricing, promotion, availability, or customer demand is limiting results.",
-                    "Repeat this analysis regularly using the latest workbook so that decisions reflect current business conditions.",
-                    "Combine these findings with profit, stock level, and customer feedback data before making major purchasing decisions.",
+                    (
+                        f"Give priority to {leader}, which produced the strongest result, "
+                        "when planning stock, promotion, or operational resources."
+                    ),
+                    (
+                        f"Review the performance of {laggard} to determine whether pricing, "
+                        "promotion, availability, or customer demand is limiting its result."
+                    ),
+                    (
+                        "Repeat the analysis using updated data so decisions reflect the "
+                        "latest business conditions."
+                    ),
+                    (
+                        "Compare the findings with profit, stock level, and customer feedback "
+                        "before making major purchasing decisions."
+                    ),
                 ]
-                rec_y = 0.31
-                for number, rec in enumerate(recommendations, start=1):
-                    wrapped_lines = textwrap.wrap(rec, 100)
-                    page2.text(0.09, rec_y, f"{number}.", fontsize=9, fontweight="bold", color="#5B5A00")
-                    page2.text(0.115, rec_y, "\n".join(wrapped_lines), fontsize=9, color="#1F2D2A", va="top")
-                    rec_y -= 0.035 + 0.019 * (len(wrapped_lines) - 1)
+                rec_y = 0.358
+                for number, recommendation in enumerate(recommendations, start=1):
+                    wrapped_lines = textwrap.wrap(recommendation, 96)
+                    page3.text(
+                        0.09, rec_y,
+                        f"{number}.",
+                        fontsize=9, fontweight="bold", color="#5B5A00",
+                    )
+                    page3.text(
+                        0.12, rec_y,
+                        "\n".join(wrapped_lines),
+                        fontsize=9, color="#1F2D2A", va="top",
+                        linespacing=1.3,
+                    )
+                    rec_y -= 0.05 + max(0, len(wrapped_lines) - 1) * 0.018
 
-                page2.text(0.08, 0.10, "LIMITATIONS", fontsize=10.5, fontweight="bold", color="#0E4A37")
-                limitation = (
-                    "The accuracy of this report depends on the completeness and correctness of the uploaded Excel data. "
-                    "Missing values, inconsistent date formats, duplicate records, or incorrect numeric entries may affect the results."
+                page3.text(
+                    0.08, 0.12, "LIMITATIONS",
+                    fontsize=10.5, fontweight="bold", color="#0E4A37",
                 )
-                page2.text(0.08, 0.075, "\n".join(textwrap.wrap(limitation, 108)), fontsize=8.5, color="#1F2D2A", va="top")
-                self._report_footer(page2, 2)
-                pdf.savefig(page2, facecolor=page2.get_facecolor())
+                limitation = (
+                    "Report accuracy depends on the completeness and correctness of the "
+                    "uploaded Excel data. Missing values, inconsistent dates, duplicate "
+                    "records, or incorrect numeric entries may affect the findings."
+                )
+                page3.text(
+                    0.08, 0.111,
+                    "\n".join(textwrap.wrap(limitation, 108)),
+                    fontsize=8.5, color="#1F2D2A", va="top",
+                    linespacing=1.3,
+                )
 
-            messagebox.showinfo("PDF created", f"The professional report was saved successfully:\n\n{output_path}")
+                self._report_footer(page3, 3)
+                pdf.savefig(page3, facecolor=page3.get_facecolor(), bbox_inches=None)
+
+            messagebox.showinfo(
+                "PDF created",
+                "The professional three-page report was saved successfully:\n\n"
+                f"{output_path}",
+            )
         except Exception as exc:
-            messagebox.showerror("PDF export failed", f"The PDF report could not be created.\n\nDetails: {exc}")
+            messagebox.showerror(
+                "PDF export failed",
+                "The PDF report could not be created.\n\n"
+                f"Details: {exc}",
+            )
 
 
 if __name__ == "__main__":
