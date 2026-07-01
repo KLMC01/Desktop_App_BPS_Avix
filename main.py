@@ -1,7 +1,7 @@
 import tkinter as tk
 from welcome_page import WelcomePage
 from login_page import LoginPage
-from dashboard_page import DashboardPage
+from dashboard import DashboardPage
 
 
 class AvixApp(tk.Tk):
