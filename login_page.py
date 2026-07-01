@@ -233,6 +233,18 @@ class LoginPage:
             self.canvas.tag_bind(item, "<Enter>", lambda event: self.canvas.config(cursor="hand2"))
             self.canvas.tag_bind(item, "<Leave>", lambda event: self.canvas.config(cursor=""))
 
+    def focus_password(self, event=None):
+        """Move keyboard focus from username to password."""
+        if self.password_entry is not None:
+            self.password_entry.focus_set()
+            self.password_entry.icursor(tk.END)
+        return "break"
+
+    def submit_login(self, event=None):
+        """Submit the login form from the keyboard."""
+        self.check_login()
+        return "break"
+
     def check_login(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
@@ -405,6 +417,10 @@ class LoginPage:
             window=self.username_entry
         )
 
+        # Press Enter after typing the username to move to Password.
+        self.username_entry.bind("<Return>", self.focus_password)
+        self.username_entry.bind("<KP_Enter>", self.focus_password)
+
         self.canvas.create_text(
             505, 237,
             text="Password",
@@ -436,6 +452,13 @@ class LoginPage:
             height=32,
             window=self.password_entry
         )
+
+        # Press Enter after typing the password to run the Login action.
+        self.password_entry.bind("<Return>", self.submit_login)
+        self.password_entry.bind("<KP_Enter>", self.submit_login)
+
+        # Start with the cursor ready in the username field.
+        self.root.after_idle(self.username_entry.focus_set)
 
         self.draw_eye_icon()
 
