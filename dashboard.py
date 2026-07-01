@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import calendar
 import os
+import textwrap
 from datetime import date, datetime
 from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 import pandas as pd
+import numpy as np
 from PIL import Image, ImageTk, ImageDraw
 
 from matplotlib.backends.backend_pdf import PdfPages
@@ -195,6 +197,15 @@ class DashboardPage:
         self.last_result = None
         self.last_chart_type = None
         self.last_chart_title = None
+        self.has_generated = False
+        self.chart_heading_id = None
+        self.chart_subheading_id = None
+        self.left_panel_id = None
+        self.preview_window_id = None
+        self.control_items = []
+        self.expand_button_items = []
+        self.is_chart_expanded = False
+        self.animation_running = False
 
         self.excel_path: str | None = getattr(self.root, "excel_path", None)
         self.excel_file: pd.ExcelFile | None = None
@@ -437,10 +448,11 @@ class DashboardPage:
             justify="center",
         )
 
-        self.draw_3d_button(47, 343, 151, 379, "HOME", self.go_home, font=("Arial", 10, "bold"))
+        self.draw_3d_button(47, 347, 119, 377, "HOME", self.go_home, font=("Arial", 9, "bold"))
+        self.draw_3d_button(128, 347, 210, 377, "LOGIN", self.go_login, font=("Arial", 9, "bold"))
 
         self.canvas.create_text(506, 87, text="Dashboard", font=("Arial", 31, "bold"), fill="#666666")
-        self.canvas.create_text(503, 86, text="Dashboard", font=("Arial", 31, "bold"), fill="black")
+        self.canvas.create_text(503, 83, text="Dashboard", font=("Arial", 31, "bold"), fill="black")
         self.canvas.create_text(
             503,
             124,
@@ -486,11 +498,24 @@ class DashboardPage:
         self.canvas.create_image(643, 440, image=self.create_logo_image(50, 10), anchor="center")
         self.add_footer()
 
+    def go_login(self):
+        """Open the application's login page when available."""
+        callback = getattr(self.root, "show_login_page", None)
+        if callable(callback):
+            callback()
+        else:
+            messagebox.showwarning("Navigation unavailable", "The login page callback is not available in main.py.")
+
     # -------------------- Chart page --------------------
     def open_chart_page(self, chart_type: str):
         if not self.ensure_excel_loaded():
             return
         self.selected_chart = chart_type
+        self.has_generated = False
+        self.is_chart_expanded = False
+        self.animation_running = False
+        self.control_items = []
+        self.expand_button_items = []
         self.clear_page()
         self.bg_image = self.prepare_dark_background()
         self.canvas = tk.Canvas(self.root, width=self.width, height=self.height, highlightthickness=0)
@@ -498,41 +523,49 @@ class DashboardPage:
         self.canvas.create_image(0, 0, image=self.bg_image, anchor="nw")
 
         self.rounded_rectangle(self.canvas, 27, 20, 693, 396, radius=28, fill=self.PANEL_RIGHT, outline="")
-        self.rounded_rectangle(self.canvas, 27, 20, 318, 396, radius=28, fill=self.PANEL_LEFT, outline="")
+        self.left_panel_id = self.rounded_rectangle(
+            self.canvas, 27, 20, 318, 396, radius=28, fill=self.PANEL_LEFT, outline=""
+        )
 
-        self.canvas.create_text(47, 52, text="Avix.lk", font=("Arial", 24, "bold"), fill=self.ACCENT, anchor="w")
-        self.canvas.create_line(47, 65, 125, 65, fill=self.ACCENT, width=2)
+        avix_title = self.canvas.create_text(
+            47, 52, text="Avix.lk", font=("Arial", 24, "bold"), fill=self.ACCENT, anchor="w"
+        )
+        avix_line = self.canvas.create_line(47, 65, 125, 65, fill=self.ACCENT, width=2)
+        self.control_items.extend([avix_title, avix_line])
 
-        self.canvas.create_text(507, 52, text=self.selected_chart, font=("Arial", 28, "bold"), fill="#666666")
-        self.canvas.create_text(504, 48, text=self.selected_chart, font=("Arial", 28, "bold"), fill="black")
-        self.canvas.create_text(
+        self.chart_heading_id = self.canvas.create_text(
+            504, 48, text=self.selected_chart, font=("Arial", 28, "bold"), fill="black"
+        )
+        self.chart_subheading_id = self.canvas.create_text(
             504,
             76,
             text="Click the heading to change chart type",
             font=("Arial", 9),
             fill=self.DARK_GREEN,
         )
-        self.canvas.tag_bind(self.canvas.find_closest(504, 48)[0], "<Button-1>", lambda event: self.show_chart_type_menu())
+        self.canvas.tag_bind(self.chart_heading_id, "<Button-1>", lambda event: self.show_chart_type_menu())
+        self.canvas.tag_bind(self.chart_heading_id, "<Enter>", lambda event: self.canvas.config(cursor="hand2"))
+        self.canvas.tag_bind(self.chart_heading_id, "<Leave>", lambda event: self.canvas.config(cursor=""))
 
         self._build_chart_controls()
         self._build_chart_preview()
 
-        self.draw_3d_button(47, 343, 168, 379, "DASHBOARD", self.show_dashboard, font=("Arial", 10, "bold"))
+        self.draw_3d_button(47, 348, 132, 376, "DASHBOARD", self.show_dashboard, font=("Arial", 8, "bold"))
         self.draw_3d_button(
-            566,
-            350,
-            660,
-            384,
-            "DOWNLOAD",
-            self.download_pdf,
-            main_color=self.PURPLE_BUTTON,
-            border_color=self.PURPLE_BORDER,
-            inner_color=self.PURPLE_BUTTON,
-            highlight_color=self.PURPLE_HIGHLIGHT,
-            shadow_color="#3E176D",
-            text_shadow="#4A1C7E",
-            font=("Arial", 9, "bold"),
+            557, 350, 661, 382, "DOWNLOAD", self.download_pdf,
+            main_color="#E39A2D", border_color="#9C6516", inner_color="#E39A2D",
+            highlight_color="#F7C36A", shadow_color="#704609", text_shadow="#80530F",
+            font=("Arial", 8, "bold"),
         )
+        self.expand_button_items = self.draw_3d_button(
+            469, 352, 548, 379, "MAXIMIZE", self.maximize_chart,
+            main_color="#2B6CB0", border_color="#194A7A", inner_color="#2B6CB0",
+            highlight_color="#6AA6E8", shadow_color="#123757", text_shadow="#183F67",
+            font=("Arial", 7, "bold"),
+        )
+
+        self.rounded_rectangle(self.canvas, 611, 409, 675, 472, radius=10, fill="#000000", outline="#00D8FF", width=2)
+        self.canvas.create_image(643, 440, image=self.create_logo_image(50, 10), anchor="center")
         self.add_footer()
 
         if self.sheet_names:
@@ -542,8 +575,16 @@ class DashboardPage:
     def show_chart_type_menu(self):
         menu = tk.Menu(self.root, tearoff=False)
         for chart_type in CHART_TYPES:
-            menu.add_command(label=chart_type, command=lambda c=chart_type: self.open_chart_page(c))
+            menu.add_command(label=chart_type, command=lambda c=chart_type: self.change_chart_type(c))
         menu.tk_popup(self.root.winfo_pointerx(), self.root.winfo_pointery())
+
+    def change_chart_type(self, chart_type: str):
+        """Change chart type without losing the user's current selections."""
+        self.selected_chart = chart_type
+        if self.chart_heading_id is not None:
+            self.canvas.itemconfigure(self.chart_heading_id, text=chart_type)
+        if self.has_generated:
+            self.generate_chart()
 
     def _make_combo(self, x, y, variable, values, width=16, callback=None):
         combo = ttk.Combobox(
@@ -554,23 +595,32 @@ class DashboardPage:
             width=width,
             font=("Arial", 9),
         )
-        self.canvas.create_window(x, y, window=combo, anchor="w")
+        item_id = self.canvas.create_window(x, y, window=combo, anchor="w")
+        self.control_items.append(item_id)
         if callback:
             combo.bind("<<ComboboxSelected>>", callback)
         return combo
 
     def _build_chart_controls(self):
         label_x = 58
-        input_x = 178
         rows = [102, 133, 164, 195, 226, 257, 288]
         labels = ["Sheet", "X axis", "Y axis", "Date column", "Calculation", "Start date", "End date"]
         for y, label in zip(rows, labels):
-            self.canvas.create_text(label_x, y, text=label, font=("Arial", 10, "bold"), fill=self.DARK_GREEN, anchor="w")
+            item_id = self.canvas.create_text(
+                label_x, y, text=label, font=("Arial", 10, "bold"), fill=self.DARK_GREEN, anchor="w"
+            )
+            self.control_items.append(item_id)
 
-        self.sheet_combo = self._make_combo(178, 102, self.sheet_var, self.sheet_names, width=15, callback=lambda event: self.load_selected_sheet())
+        self.sheet_combo = self._make_combo(
+            178, 102, self.sheet_var, self.sheet_names, width=15,
+            callback=lambda event: self.load_selected_sheet()
+        )
         self.x_combo = self._make_combo(178, 133, self.x_var, [], width=15)
         self.y_combo = self._make_combo(178, 164, self.y_var, [], width=15)
-        self.date_combo = self._make_combo(178, 195, self.date_column_var, ["None"], width=15, callback=lambda event: self.reset_date_range())
+        self.date_combo = self._make_combo(
+            178, 195, self.date_column_var, ["None"], width=15,
+            callback=lambda event: self.reset_date_range()
+        )
         self.aggregation_combo = self._make_combo(178, 226, self.aggregation_var, AGGREGATIONS, width=15)
 
         self.start_date_label = tk.Label(
@@ -583,7 +633,8 @@ class DashboardPage:
             anchor="w",
             padx=5,
         )
-        self.canvas.create_window(178, 257, window=self.start_date_label, anchor="w")
+        start_label_item = self.canvas.create_window(178, 257, window=self.start_date_label, anchor="w")
+        self.control_items.append(start_label_item)
         calendar_start = tk.Button(
             self.root,
             text="📅",
@@ -595,7 +646,8 @@ class DashboardPage:
             cursor="hand2",
             width=3,
         )
-        self.canvas.create_window(282, 257, window=calendar_start)
+        start_calendar_item = self.canvas.create_window(282, 257, window=calendar_start)
+        self.control_items.append(start_calendar_item)
 
         self.end_date_label = tk.Label(
             self.root,
@@ -607,7 +659,8 @@ class DashboardPage:
             anchor="w",
             padx=5,
         )
-        self.canvas.create_window(178, 288, window=self.end_date_label, anchor="w")
+        end_label_item = self.canvas.create_window(178, 288, window=self.end_date_label, anchor="w")
+        self.control_items.append(end_label_item)
         calendar_end = tk.Button(
             self.root,
             text="📅",
@@ -619,27 +672,23 @@ class DashboardPage:
             cursor="hand2",
             width=3,
         )
-        self.canvas.create_window(282, 288, window=calendar_end)
+        end_calendar_item = self.canvas.create_window(282, 288, window=calendar_end)
+        self.control_items.append(end_calendar_item)
 
-        self.draw_3d_button(
-            185,
-            309,
-            292,
-            340,
-            "GENERATE",
-            self.generate_chart,
-            main_color=self.PURPLE_BUTTON,
-            border_color=self.PURPLE_BORDER,
-            inner_color=self.PURPLE_BUTTON,
-            highlight_color=self.PURPLE_HIGHLIGHT,
-            shadow_color="#3E176D",
-            text_shadow="#4A1C7E",
+        generate_items = self.draw_3d_button(
+            185, 309, 292, 340, "GENERATE", self.generate_chart,
+            main_color="#7B2CBF", border_color="#4B176E",
+            inner_color="#7B2CBF", highlight_color="#B46CE0",
+            shadow_color="#3A0F55", text_shadow="#4B176E",
             font=("Arial", 9, "bold"),
         )
+        self.control_items.extend(generate_items)
 
     def _build_chart_preview(self):
         preview = tk.Frame(self.root, bg="#DCDCDC", bd=1, relief="solid")
-        self.canvas.create_window(358, 91, window=preview, anchor="nw", width=294, height=233)
+        self.preview_window_id = self.canvas.create_window(
+            358, 91, window=preview, anchor="nw", width=294, height=233
+        )
         self.preview_frame = preview
         tk.Label(
             preview,
@@ -669,12 +718,7 @@ class DashboardPage:
             if pd.api.types.is_datetime64_any_dtype(self.current_df[column]):
                 date_columns.append(str(column))
                 continue
-            converted = pd.to_datetime(
-                self.current_df[column],
-                errors="coerce",
-                format="mixed",
-                dayfirst=True
-            )
+            converted = pd.to_datetime(self.current_df[column], errors="coerce", format="mixed", dayfirst=True)
             if len(converted) and converted.notna().mean() >= 0.75:
                 date_columns.append(str(column))
 
@@ -700,7 +744,7 @@ class DashboardPage:
 
         column = self.date_column_var.get()
         if column and column != "None" and column in self.current_df.columns:
-            converted = pd.to_datetime(self.current_df[column], errors="coerce").dropna()
+            converted = pd.to_datetime(self.current_df[column], errors="coerce", format="mixed", dayfirst=True).dropna()
             if not converted.empty:
                 self.start_date = converted.min().date()
                 self.end_date = converted.max().date()
@@ -740,7 +784,7 @@ class DashboardPage:
         df = self.current_df.copy()
         date_column = self.date_column_var.get()
         if date_column and date_column != "None" and date_column in df.columns:
-            dates = pd.to_datetime(df[date_column], errors="coerce")
+            dates = pd.to_datetime(df[date_column], errors="coerce", format="mixed", dayfirst=True)
             mask = dates.notna()
             if self.start_date:
                 mask &= dates.dt.date >= self.start_date
@@ -784,6 +828,41 @@ class DashboardPage:
         output[x_col] = output[x_col].astype(str)
         return output
 
+    def _draw_chart_on_axis(self, axis, result=None, chart_type=None, title=None):
+        result = result if result is not None else self.last_result
+        chart_type = chart_type or self.selected_chart
+        if result is None:
+            raise ValueError("No chart data is available.")
+
+        labels = result[self.x_var.get()].tolist()
+        values = result["value"].tolist()
+
+        if chart_type == "Bar Chart":
+            axis.barh(labels, values)
+            axis.invert_yaxis()
+            axis.set_xlabel(self.y_var.get())
+            axis.set_ylabel(self.x_var.get())
+        elif chart_type == "Column Chart":
+            axis.bar(labels, values)
+            axis.set_xlabel(self.x_var.get())
+            axis.set_ylabel(self.y_var.get())
+            axis.tick_params(axis="x", rotation=45)
+        elif chart_type == "Line Chart":
+            axis.plot(labels, values, marker="o", linewidth=2)
+            axis.set_xlabel(self.x_var.get())
+            axis.set_ylabel(self.y_var.get())
+            axis.tick_params(axis="x", rotation=45)
+            axis.grid(True, alpha=0.25)
+        elif chart_type == "Pie Chart":
+            positive = [(label, value) for label, value in zip(labels, values) if value >= 0]
+            if not positive or sum(value for _, value in positive) <= 0:
+                raise ValueError("Pie charts require positive values.")
+            pie_labels, pie_values = zip(*positive)
+            axis.pie(pie_values, labels=pie_labels, autopct="%1.1f%%", startangle=90)
+            axis.axis("equal")
+
+        axis.set_title(title or self.last_chart_title or chart_type, fontsize=11, fontweight="bold")
+
     def generate_chart(self):
         if self.current_df.empty:
             messagebox.showwarning("No worksheet data", "The selected worksheet has no usable rows.")
@@ -808,55 +887,123 @@ class DashboardPage:
         self.last_result = result
         self.last_chart_type = self.selected_chart
         self.last_chart_title = f"{self.aggregation_var.get()} of {self.y_var.get()} by {self.x_var.get()}"
+        self.has_generated = True
 
         for widget in self.preview_frame.winfo_children():
             widget.destroy()
 
         self.figure = Figure(figsize=(4.15, 3.1), dpi=80, facecolor="#DCDCDC")
         axis = self.figure.add_subplot(111)
-        labels = result[self.x_var.get()].tolist()
-        values = result["value"].tolist()
-
-        if self.selected_chart == "Bar Chart":
-            axis.barh(labels, values)
-            axis.invert_yaxis()
-            axis.set_xlabel(self.y_var.get())
-            axis.set_ylabel(self.x_var.get())
-        elif self.selected_chart == "Column Chart":
-            axis.bar(labels, values)
-            axis.set_xlabel(self.x_var.get())
-            axis.set_ylabel(self.y_var.get())
-            axis.tick_params(axis="x", rotation=45)
-        elif self.selected_chart == "Line Chart":
-            axis.plot(labels, values, marker="o")
-            axis.set_xlabel(self.x_var.get())
-            axis.set_ylabel(self.y_var.get())
-            axis.tick_params(axis="x", rotation=45)
-            axis.grid(True, alpha=0.25)
-        elif self.selected_chart == "Pie Chart":
-            positive = [(label, value) for label, value in zip(labels, values) if value >= 0]
-            if not positive or sum(value for _, value in positive) <= 0:
-                messagebox.showerror("Unable to generate pie chart", "Pie charts require positive values.")
-                return
-            pie_labels, pie_values = zip(*positive)
-            axis.pie(pie_values, labels=pie_labels, autopct="%1.1f%%", startangle=90)
-            axis.axis("equal")
-
-        axis.set_title(self.last_chart_title, fontsize=10, fontweight="bold")
+        try:
+            self._draw_chart_on_axis(axis, result=result)
+        except ValueError as exc:
+            messagebox.showerror("Unable to generate chart", str(exc))
+            return
         self.figure.tight_layout()
         self.chart_canvas = FigureCanvasTkAgg(self.figure, master=self.preview_frame)
         self.chart_canvas.draw()
         self.chart_canvas.get_tk_widget().pack(fill="both", expand=True)
 
+    def _set_expand_button_text(self, text: str):
+        if len(self.expand_button_items) >= 2:
+            for item in self.expand_button_items[-2:]:
+                self.canvas.itemconfigure(item, text=text)
+
+    def maximize_chart(self):
+        """Animate the controls out of view and enlarge the embedded chart area."""
+        if self.last_result is None:
+            messagebox.showwarning("Generate chart first", "Generate a chart before maximizing it.")
+            return
+        if self.animation_running:
+            return
+
+        self.animation_running = True
+        expanding = not self.is_chart_expanded
+        total_steps = 18
+        move_per_step = -14 if expanding else 14
+        width_per_step = 14 if expanding else -14
+        heading_move = -6 if expanding else 6
+        target_text = "MINIMIZE" if expanding else "MAXIMIZE"
+
+        def animate(step=0):
+            if step >= total_steps:
+                self.is_chart_expanded = expanding
+                self.animation_running = False
+                self._set_expand_button_text(target_text)
+                if self.chart_canvas is not None:
+                    self.chart_canvas.draw_idle()
+                return
+
+            if self.left_panel_id is not None:
+                self.canvas.move(self.left_panel_id, move_per_step, 0)
+            for item in self.control_items:
+                try:
+                    self.canvas.move(item, move_per_step, 0)
+                except tk.TclError:
+                    pass
+
+            if self.preview_window_id is not None:
+                self.canvas.move(self.preview_window_id, move_per_step, 0)
+                current_width = float(self.canvas.itemcget(self.preview_window_id, "width") or 294)
+                self.canvas.itemconfigure(self.preview_window_id, width=max(294, current_width + width_per_step))
+
+            if self.chart_heading_id is not None:
+                self.canvas.move(self.chart_heading_id, heading_move, 0)
+            if self.chart_subheading_id is not None:
+                self.canvas.move(self.chart_subheading_id, heading_move, 0)
+
+            self.root.after(18, lambda: animate(step + 1))
+
+        animate()
+
     # -------------------- PDF export --------------------
+    def _add_report_watermark(self, figure):
+        logo_path = self._asset_path("logo.jpg", "logo.png")
+        if not logo_path:
+            return
+        try:
+            logo = Image.open(logo_path).convert("RGBA")
+            logo.thumbnail((700, 700))
+            image_array = np.asarray(logo)
+            figure.figimage(
+                image_array,
+                xo=max(0, int((figure.bbox.xmax - image_array.shape[1]) / 2)),
+                yo=max(0, int((figure.bbox.ymax - image_array.shape[0]) / 2)),
+                alpha=0.055,
+                zorder=0,
+            )
+        except Exception:
+            pass
+
+    def _report_footer(self, figure, page_number: int):
+        figure.text(0.08, 0.028, "Avix Mobile LK • Business Support Analytics", fontsize=7.5, color="#5B6B68")
+        figure.text(0.92, 0.028, f"Page {page_number}", fontsize=7.5, color="#5B6B68", ha="right")
+        figure.lines.append(
+            __import__("matplotlib").lines.Line2D([0.08, 0.92], [0.045, 0.045], transform=figure.transFigure, color="#91D9C0", linewidth=1)
+        )
+
+    def _insight_lines(self):
+        ordered = self.last_result.sort_values("value", ascending=False)
+        top = ordered.iloc[0]
+        bottom = ordered.iloc[-1]
+        total = float(ordered["value"].sum())
+        average = float(ordered["value"].mean())
+        count = len(ordered)
+        x_col = self.x_var.get()
+        return [
+            f"Highest result: {top[x_col]} with {top['value']:,.2f}.",
+            f"Lowest result: {bottom[x_col]} with {bottom['value']:,.2f}.",
+            f"Combined value across {count} categories: {total:,.2f}; average category value: {average:,.2f}.",
+        ]
+
     def download_pdf(self):
         if self.figure is None or self.last_result is None:
             messagebox.showwarning("Generate chart first", "Generate a chart before downloading the PDF report.")
             return
 
-        default_name = f"Avix_{self.selected_chart.replace(' ', '_')}_Report.pdf"
+        default_name = f"Avix_{self.selected_chart.replace(' ', '_')}_Business_Report.pdf"
         output_path = filedialog.asksaveasfilename(
-            title="Save PDF report",
+            title="Save professional PDF report",
             defaultextension=".pdf",
             initialfile=default_name,
             filetypes=[("PDF file", "*.pdf")],
@@ -866,66 +1013,123 @@ class DashboardPage:
 
         try:
             with PdfPages(output_path) as pdf:
-                report = Figure(figsize=(8.27, 11.69))
-                report.text(0.5, 0.965, "Avix Mobile LK", ha="center", fontsize=20, fontweight="bold")
-                report.text(0.5, 0.935, "Business Analysis Report", ha="center", fontsize=14)
-                report.text(0.08, 0.89, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}", fontsize=9)
-                report.text(0.08, 0.865, f"Workbook: {os.path.basename(self.excel_path or '')}", fontsize=9)
-                report.text(0.08, 0.84, f"Worksheet: {self.sheet_var.get()}", fontsize=9)
-                report.text(0.08, 0.815, f"Chart type: {self.selected_chart}", fontsize=9)
-                report.text(0.08, 0.79, f"X axis: {self.x_var.get()}", fontsize=9)
-                report.text(0.08, 0.765, f"Y axis: {self.y_var.get()}", fontsize=9)
-                report.text(0.08, 0.74, f"Calculation: {self.aggregation_var.get()}", fontsize=9)
-                report.text(
-                    0.08,
-                    0.715,
-                    f"Date range: {self.start_date_var.get()} to {self.end_date_var.get()}",
-                    fontsize=9,
+                # Page 1: executive overview and chart
+                page1 = Figure(figsize=(8.27, 11.69), facecolor="#F8FBFB")
+                self._add_report_watermark(page1)
+                page1.text(0.08, 0.95, "AVIX MOBILE LK", fontsize=20, fontweight="bold", color="#0E4A37")
+                page1.text(0.08, 0.922, "Business Analysis Report", fontsize=13, color="#5B5A00")
+                page1.text(0.92, 0.95, datetime.now().strftime("%d %B %Y"), fontsize=8.5, ha="right", color="#5B6B68")
+                page1.lines.append(
+                    __import__("matplotlib").lines.Line2D([0.08, 0.92], [0.905, 0.905], transform=page1.transFigure, color="#91D9C0", linewidth=2)
                 )
 
-                chart_axis = report.add_axes([0.09, 0.38, 0.82, 0.29])
-                labels = self.last_result[self.x_var.get()].tolist()
-                values = self.last_result["value"].tolist()
+                page1.text(0.08, 0.875, "REPORT OVERVIEW", fontsize=10.5, fontweight="bold", color="#0E4A37")
+                metadata = [
+                    ("Workbook", os.path.basename(self.excel_path or "")),
+                    ("Worksheet", self.sheet_var.get()),
+                    ("Chart type", self.selected_chart),
+                    ("Analysis", self.last_chart_title or ""),
+                    ("X-axis", self.x_var.get()),
+                    ("Y-axis", self.y_var.get()),
+                    ("Calculation", self.aggregation_var.get()),
+                    ("Date range", f"{self.start_date_var.get()} to {self.end_date_var.get()}"),
+                ]
+                y = 0.845
+                for index, (label, value) in enumerate(metadata):
+                    x = 0.08 if index % 2 == 0 else 0.52
+                    if index % 2 == 0 and index > 0:
+                        y -= 0.045
+                    page1.text(x, y, label.upper(), fontsize=7.5, fontweight="bold", color="#5B6B68")
+                    page1.text(x, y - 0.018, str(value), fontsize=9, color="#1F2D2A")
 
-                if self.selected_chart == "Bar Chart":
-                    chart_axis.barh(labels, values)
-                    chart_axis.invert_yaxis()
-                    chart_axis.set_xlabel(self.y_var.get())
-                elif self.selected_chart == "Column Chart":
-                    chart_axis.bar(labels, values)
-                    chart_axis.tick_params(axis="x", rotation=45)
-                elif self.selected_chart == "Line Chart":
-                    chart_axis.plot(labels, values, marker="o")
-                    chart_axis.tick_params(axis="x", rotation=45)
-                    chart_axis.grid(True, alpha=0.25)
-                else:
-                    chart_axis.pie(values, labels=labels, autopct="%1.1f%%", startangle=90)
-                    chart_axis.axis("equal")
+                chart_axis = page1.add_axes([0.09, 0.36, 0.82, 0.34], facecolor="#FFFFFF")
+                self._draw_chart_on_axis(chart_axis, result=self.last_result)
+                chart_axis.tick_params(labelsize=8)
 
-                chart_axis.set_title(self.last_chart_title, fontsize=12, fontweight="bold")
+                page1.text(0.08, 0.315, "KEY INSIGHTS", fontsize=10.5, fontweight="bold", color="#0E4A37")
+                insight_y = 0.285
+                for line in self._insight_lines():
+                    for wrapped in textwrap.wrap(line, 95):
+                        page1.text(0.095, insight_y, f"• {wrapped}", fontsize=9, color="#1F2D2A")
+                        insight_y -= 0.023
 
-                summary = self.last_result.sort_values("value", ascending=False).head(5)
-                report.text(0.08, 0.32, "Top results", fontsize=12, fontweight="bold")
-                y = 0.29
-                for _, row in summary.iterrows():
-                    report.text(
-                        0.1,
-                        y,
-                        f"• {row[self.x_var.get()]}: {row['value']:,.2f}",
-                        fontsize=10,
-                    )
-                    y -= 0.025
-
-                report.text(
-                    0.5,
-                    0.04,
-                    "Generated by the Avix Business Support System",
-                    ha="center",
-                    fontsize=8,
+                page1.text(0.08, 0.17, "EXECUTIVE INTERPRETATION", fontsize=10.5, fontweight="bold", color="#0E4A37")
+                interpretation = (
+                    f"This report summarizes the {self.aggregation_var.get().lower()} of {self.y_var.get()} "
+                    f"across {self.x_var.get()} using the selected worksheet and date range. The visualization "
+                    "supports comparison, pattern recognition, and evidence-based operational decisions."
                 )
-                pdf.savefig(report)
+                page1.text(0.08, 0.145, "\n".join(textwrap.wrap(interpretation, 105)), fontsize=9, color="#1F2D2A", va="top")
+                self._report_footer(page1, 1)
+                pdf.savefig(page1, facecolor=page1.get_facecolor())
 
-            messagebox.showinfo("PDF created", f"The report was saved successfully:\n\n{output_path}")
+                # Page 2: detailed table, method and recommendations
+                page2 = Figure(figsize=(8.27, 11.69), facecolor="#F8FBFB")
+                self._add_report_watermark(page2)
+                page2.text(0.08, 0.95, "DETAILED ANALYSIS", fontsize=18, fontweight="bold", color="#0E4A37")
+                page2.text(0.08, 0.92, self.last_chart_title or self.selected_chart, fontsize=11, color="#5B5A00")
+                page2.lines.append(
+                    __import__("matplotlib").lines.Line2D([0.08, 0.92], [0.9, 0.9], transform=page2.transFigure, color="#91D9C0", linewidth=2)
+                )
+
+                page2.text(0.08, 0.865, "TOP ANALYSIS RESULTS", fontsize=10.5, fontweight="bold", color="#0E4A37")
+                table_data = self.last_result.sort_values("value", ascending=False).head(12)
+                table_axis = page2.add_axes([0.08, 0.53, 0.84, 0.30])
+                table_axis.axis("off")
+                cell_text = [[str(row[self.x_var.get()]), f"{row['value']:,.2f}"] for _, row in table_data.iterrows()]
+                table = table_axis.table(
+                    cellText=cell_text,
+                    colLabels=[self.x_var.get(), f"{self.aggregation_var.get()} of {self.y_var.get()}"],
+                    loc="center",
+                    cellLoc="left",
+                    colColours=["#91D9C0", "#91D9C0"],
+                )
+                table.auto_set_font_size(False)
+                table.set_fontsize(8.5)
+                table.scale(1, 1.45)
+                for (row, col), cell in table.get_celld().items():
+                    cell.set_edgecolor("#C7D9D4")
+                    if row == 0:
+                        cell.set_text_props(weight="bold", color="#0E4A37")
+                    elif row % 2 == 0:
+                        cell.set_facecolor("#EDF7F4")
+
+                page2.text(0.08, 0.47, "METHODOLOGY", fontsize=10.5, fontweight="bold", color="#0E4A37")
+                method = (
+                    "The application imported the selected Excel worksheet, filtered records using the chosen "
+                    "date column and calendar range, grouped the records by the selected X-axis field, and applied "
+                    f"the {self.aggregation_var.get().lower()} calculation to the selected Y-axis field. "
+                    "The processed result was then visualized using the selected chart type."
+                )
+                page2.text(0.08, 0.445, "\n".join(textwrap.wrap(method, 108)), fontsize=9, color="#1F2D2A", va="top")
+
+                page2.text(0.08, 0.34, "BUSINESS RECOMMENDATIONS", fontsize=10.5, fontweight="bold", color="#0E4A37")
+                ordered = self.last_result.sort_values("value", ascending=False)
+                leader = ordered.iloc[0][self.x_var.get()]
+                laggard = ordered.iloc[-1][self.x_var.get()]
+                recommendations = [
+                    f"Prioritize stock, promotional attention, or operational resources for {leader}, which produced the strongest result.",
+                    f"Review the performance of {laggard} and determine whether pricing, promotion, availability, or customer demand is limiting results.",
+                    "Repeat this analysis regularly using the latest workbook so that decisions reflect current business conditions.",
+                    "Combine these findings with profit, stock level, and customer feedback data before making major purchasing decisions.",
+                ]
+                rec_y = 0.31
+                for number, rec in enumerate(recommendations, start=1):
+                    wrapped_lines = textwrap.wrap(rec, 100)
+                    page2.text(0.09, rec_y, f"{number}.", fontsize=9, fontweight="bold", color="#5B5A00")
+                    page2.text(0.115, rec_y, "\n".join(wrapped_lines), fontsize=9, color="#1F2D2A", va="top")
+                    rec_y -= 0.035 + 0.019 * (len(wrapped_lines) - 1)
+
+                page2.text(0.08, 0.10, "LIMITATIONS", fontsize=10.5, fontweight="bold", color="#0E4A37")
+                limitation = (
+                    "The accuracy of this report depends on the completeness and correctness of the uploaded Excel data. "
+                    "Missing values, inconsistent date formats, duplicate records, or incorrect numeric entries may affect the results."
+                )
+                page2.text(0.08, 0.075, "\n".join(textwrap.wrap(limitation, 108)), fontsize=8.5, color="#1F2D2A", va="top")
+                self._report_footer(page2, 2)
+                pdf.savefig(page2, facecolor=page2.get_facecolor())
+
+            messagebox.showinfo("PDF created", f"The professional report was saved successfully:\n\n{output_path}")
         except Exception as exc:
             messagebox.showerror("PDF export failed", f"The PDF report could not be created.\n\nDetails: {exc}")
 
